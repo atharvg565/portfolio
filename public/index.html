@@ -3,24 +3,62 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Your Name | Portfolio</title>
+  <title>Atharv Gupta | Portfolio</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>
-    <h1>Hi, I'm Your Name</h1>
-    <p>Learning Python, SQL, and Node.js</p>
+  <nav class="nav">
+    <a href="#home" class="logo">AG</a>
+    <div class="nav-links">
+      <a href="#about">About</a>
+      <a href="#projects">Projects</a>
+      <a href="#contact">Contact</a>
+      <button id="theme-toggle" aria-label="Toggle theme">🌙</button>
+    </div>
+  </nav>
+
+  <header id="home" class="hero">
+    <p class="eyebrow">Hello, I'm</p>
+    <h1>Atharv Gupta</h1>
+    <p class="typing">I build <span id="typed"></span><span class="cursor">|</span></p>
+    <div class="hero-buttons">
+      <a href="#projects" class="btn">View projects</a>
+      <a href="https://github.com/atharvg565" target="_blank" rel="noopener" class="btn btn-outline">GitHub</a>
+    </div>
   </header>
 
-  <section>
-    <h2>Projects</h2>
-    <div id="projects"></div>
-  </section>
+  <main>
+    <section id="about" class="reveal">
+      <h2>About</h2>
+      <p>I'm a student developer who learns by building. My projects so far include Setu, built for Smart India Hackathon 2026, and CyberShield, an explainable phishing detector.</p>
+      <div class="chips">
+        <span class="chip">Python</span>
+        <span class="chip">SQL</span>
+        <span class="chip">JavaScript</span>
+        <span class="chip">Node.js</span>
+        <span class="chip">React</span>
+        <span class="chip">MongoDB</span>
+        <span class="chip">HTML/CSS</span>
+      </div>
+    </section>
 
-  <section>
-    <h2>Contact</h2>
-    <a href="https://github.com/yourname">GitHub</a>
-  </section>
+    <section id="projects" class="reveal">
+      <h2>Projects</h2>
+      <div id="filters" class="filters"></div>
+      <div id="projects-grid"></div>
+    </section>
+
+    <section id="contact" class="reveal">
+      <h2>Contact</h2>
+      <p>Want to collaborate or just say hi? Find me here:</p>
+      <div class="hero-buttons">
+        <a href="https://github.com/atharvg565" target="_blank" rel="noopener" class="btn">GitHub</a>
+        <a href="https://www.linkedin.com/in/YOUR-LINKEDIN/" target="_blank" rel="noopener" class="btn btn-outline">LinkedIn</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>© 2026 Atharv Gupta</footer>
 
   <script src="script.js"></script>
 </body>
