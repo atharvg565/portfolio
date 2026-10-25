@@ -77,5 +77,5 @@ a {
   text-decoration: none;
   font-weight: 500;
 }
-
+h2 { display: block; width: fit-content; }
 a:hover { text-decoration: underline; }
