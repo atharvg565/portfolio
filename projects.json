@@ -1,7 +1,20 @@
 [
   {
-    "title": "Expense Tracker",
-    "description": "CLI app built with Python and SQLite.",
-    "link": "https://github.com/yourname/expense-tracker"
+    "title": "Setu: Academia-Industry Collaboration Portal",
+    "description": "Smart India Hackathon 2026 project (PS 26044). Turns students' self-assessed skills into a measurable profile and ranks internships against it with an explainable scoring algorithm. Companies get applicants ranked by match score.",
+    "tags": ["React", "Node.js", "MongoDB", "Tailwind"],
+    "link": "https://github.com/atharvg565/setu"
+  },
+  {
+    "title": "CyberShield: Explainable Phishing Detector",
+    "description": "Paste a suspicious SMS, email or link and get a Low, Medium or High risk rating with reasons and safety advice. Combines a blocklist, an ML model trained on about 235,000 URLs and rule-based scam-language analysis.",
+    "tags": ["Machine Learning", "Security", "python"],
+    "link": "https://github.com/atharvg565/cybershield"
+  },
+  {
+    "title": "Portfolio Website",
+    "description": "This site. An Express server serves the pages and a /api/projects endpoint that feeds the project cards.",
+    "tags": ["Node.js", "Express"],
+    "link": "https://github.com/atharvg565/portfolio"
   }
 ]
