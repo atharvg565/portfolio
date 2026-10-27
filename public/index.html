@@ -4,77 +4,122 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Atharv Gupta | Portfolio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jacquard+24&family=Pixelify+Sans:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="bg" aria-hidden="true">
-   <span class="blob b1"></span>
-   <span class="blob b2"></span>
-   <span class="blob b3"></span>
-  </div>
-  <nav class="nav">
-    <a href="#home" class="logo">
-      <img src="images/photo.jpg" alt="Atharv Gupta">
-     <span>Atharv</span>
-    </a>
-    <div class="nav-links">
-      <a href="#about">About</a>
-      <a href="#projects">Projects</a>
-      <a href="#contact">Contact</a>
-      <button id="theme-toggle" aria-label="Toggle theme">🌙</button>
-    </div>
-  </nav>
+  <canvas id="scene" aria-hidden="true"></canvas>
+  <div class="vignette" aria-hidden="true"></div>
+  <button id="sound" class="icon-btn" aria-label="Toggle sound">♪ on</button>
 
-  <header id="home" class="hero">
-    <p class="eyebrow">Hello, I'm</p>
-    <h1>Atharv Gupta</h1>
-    <p class="typing">I build <span id="typed"></span><span class="cursor">|</span></p>
-    <div class="hero-buttons">
-      <a href="#projects" class="btn">View projects</a>
-      <a href="https://github.com/atharvg565" target="_blank" rel="noopener" class="btn btn-outline">GitHub</a>
-    </div>
-  </header>
-
-  <main>
-    <section id="about" class="reveal">
-      <h2>About</h2>
-      <p>Hey, I'm Atharv Gupta, 
-
-        I'm a passionate developer and problem solver who enjoys turning ideas into meaningful digital experiences. I love exploring new technologies, building projects, and finding creative ways to solve real-world problems.
-
-        From developing web applications to experimenting with machine learning and cybersecurity, I'm always looking for opportunities to learn, build, and improve. I believe in learning by doing, thinking beyond the obvious, and constantly pushing myself to create something better.
-
-        When I'm not coding, you'll probably find me exploring new ideas, working on personal projects, or diving into the world of anime and manga.
-
-        I don't just want to build projects — I want to build things that make a difference.</p>
-      <div class="chips">
-        <span class="chip">Python</span>
-        <span class="chip">SQL</span>
-        <span class="chip">JavaScript</span>
-        <span class="chip">Node.js</span>
-        <span class="chip">React</span>
-        <span class="chip">MongoDB</span>
-        <span class="chip">HTML/CSS</span>
-      </div>
-    </section>
-
-    <section id="projects" class="reveal">
-      <h2>Projects</h2>
-      <div id="filters" class="filters"></div>
-      <div id="projects-grid"></div>
-    </section>
-
-    <section id="contact" class="reveal">
-      <h2>Contact</h2>
-      <p>Want to collaborate or just say hi? Find me here:</p>
-      <div class="hero-buttons">
-        <a href="https://github.com/atharvg565" target="_blank" rel="noopener" class="btn">GitHub</a>
-        <a href="https://www.linkedin.com/in/atharvg565" target="_blank" rel="noopener" class="btn btn-outline">LinkedIn</a>
-      </div>
-    </section>
+  <!-- TITLE / MENU -->
+  <main id="menu" class="screen active">
+    <h1 class="title">Atharv Gupta</h1>
+    <p class="subtitle">~ a developer's portfolio ~</p>
+    <ul class="menu-list" id="menu-list">
+      <li><button data-go="about">about me</button></li>
+      <li><button data-go="portfolio">portfolio</button></li>
+      <li><button data-go="quit">quit</button></li>
+    </ul>
+    <p class="hint">↑ ↓ move · enter select · esc back</p>
   </main>
 
-  <footer>© 2026 Atharv Gupta</footer>
+  <!-- ABOUT ME (character select) -->
+  <section id="about" class="screen dim">
+    <header class="topbar">
+      <span>ATHARV GUPTA</span><span class="diamond">◆</span><span>ABOUT ME</span>
+      <span class="hearts" aria-label="Passion level: full">♥ ♥ ♥ ♥</span>
+    </header>
+
+    <div class="content about-grid">
+      <aside class="panel info">
+        <div class="who">
+          <img class="avatar" src="images/photo.jpg" alt="" onerror="this.style.display='none'">
+          <div>
+            <h2>Atharv</h2>
+            <p class="class-name">Full-Stack Apprentice</p>
+          </div>
+        </div>
+        <h3>INFORMATION</h3>
+        <p>Student developer who learns by building. Likes turning messy problems into software that can explain its own answers.</p>
+        <h3>SKILLS</h3>
+        <ul class="skill-list">
+          <li>Full-stack web apps</li>
+          <li>REST APIs with Node &amp; Express</li>
+          <li>Explainable scoring &amp; matching logic</li>
+          <li>Phishing &amp; fraud detection basics</li>
+          <li>Teamwork (Smart India Hackathon 2026)</li>
+        </ul>
+      </aside>
+
+      <div class="stage">
+        <button class="arrow" id="prev" aria-label="Previous outfit">◀</button>
+        <div class="hero-col">
+          <div class="sprite-wrap">
+            <canvas id="hero" width="16" height="20" aria-label="Chibi Atharv"></canvas>
+          </div>
+          <p id="outfit-name" class="caption"></p>
+        </div>
+        <button class="arrow" id="next" aria-label="Next outfit">▶</button>
+      </div>
+
+      <aside class="panel stats">
+        <h2>Stats</h2>
+        <h3>LANGUAGES &amp; TOOLS</h3>
+        <ul id="stat-list"></ul>
+      </aside>
+    </div>
+
+    <footer class="bottombar">
+      <button data-go="menu">◀ back</button>
+      <button data-go="portfolio">confirm ▶</button>
+    </footer>
+  </section>
+
+  <!-- PORTFOLIO -->
+  <section id="portfolio" class="screen dim">
+    <header class="topbar">
+      <span>ATHARV GUPTA</span><span class="diamond">◆</span><span>PORTFOLIO</span>
+    </header>
+    <div class="content">
+      <h2 class="page-title">Quest Log</h2>
+      <div id="project-grid" class="project-grid"></div>
+    </div>
+    <footer class="bottombar">
+      <button data-go="menu">◀ back</button>
+      <button data-go="quit">quit ▶</button>
+    </footer>
+  </section>
+
+  <!-- GOODBYE -->
+  <section id="bye" class="screen dim">
+    <h1 class="title small">Thanks for visiting!</h1>
+    <p id="bye-msg" class="subtitle"></p>
+    <ul class="menu-list">
+      <li><button data-go="menu">play again</button></li>
+    </ul>
+  </section>
+
+  <!-- QUIT POP-UP -->
+  <div id="quit-modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="quit-title">
+    <div class="panel dialog">
+      <h2 id="quit-title">Why do you want to quit?</h2>
+      <div class="reasons" role="radiogroup">
+        <label><input type="radio" name="reason" value="Just browsing" checked> just browsing</label>
+        <label><input type="radio" name="reason" value="Found what I needed"> found what i needed</label>
+        <label><input type="radio" name="reason" value="I have to go"> i have to go</label>
+        <label><input type="radio" name="reason" value="Not my style"> not my style</label>
+        <label><input type="radio" name="reason" value="Something else"> something else</label>
+      </div>
+      <input id="reason-other" type="text" maxlength="120" placeholder="tell me more (optional)">
+      <div class="dialog-buttons">
+        <button id="stay">◀ stay</button>
+        <button id="leave">leave ▶</button>
+      </div>
+    </div>
+  </div>
 
   <script src="script.js"></script>
 </body>
