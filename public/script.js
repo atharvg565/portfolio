@@ -108,6 +108,16 @@ function renderHero() {
   $('#outfit-name').textContent = 'hero: ' + OUTFITS[outfitIndex].name;
 }
 
+function cycleOutfit(d) {
+  if (usingCustom) return;
+  outfitIndex = (outfitIndex + d + OUTFITS.length) % OUTFITS.length;
+  renderHero();
+  buildStatic();
+  blip(600, 0.05);
+}
+$('#prev').addEventListener('click', () => cycleOutfit(-1));
+$('#next').addEventListener('click', () => cycleOutfit(1));
+
 // Optional: drop your own sprite at public/images/chibi.png (32x40 px, transparent) and it replaces this one
 const customSprite = new Image();
 customSprite.onload = () => {
