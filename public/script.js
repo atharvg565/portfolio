@@ -55,9 +55,11 @@ const SPRITE = [
   '...oooo..oooo...',
 ];
 const OUTFITS = [
-  { name: 'ember',  main: '#d9482b', dark: '#a8321c' },
-  { name: 'forest', main: '#2f9e8f', dark: '#1f6f66' },
-  { name: 'gold',   main: '#e0a526', dark: '#a87a14' },
+  { name: 'night guard',  main: '#2b2f3a', dark: '#161922', cape: '#14161d', mask: '#14161d' },
+  { name: 'gold armor',   main: '#c4302b', dark: '#e0a526', emblem: '#bff3ff' },
+  { name: 'web runner',   main: '#d62839', dark: '#2748a8', mask: '#d62839' },
+  { name: 'storm hammer', main: '#5b6b7a', dark: '#3a4654', cape: '#c0392b', emblem: '#e0e6ee' },
+  { name: 'bow kitty',    main: '#ff8fb1', dark: '#d9628a', bow: '#ff3d77' },
 ];
 let outfitIndex = 0;
 let usingCustom = false;
@@ -66,6 +68,7 @@ function paletteFor(o) {
   return { o: '#2a1a14', h: '#1c1c26', H: '#3d3d58', s: '#f0c19a', k: '#e88a7a',
            e: '#15110f', m: '#8a3b2e', r: o.main, R: o.dark, p: '#3b4a6b', b: '#2a1a14' };
 }
+
 function drawSprite(ctx, pal, ox = 0, oy = 0) {
   SPRITE.forEach((row, y) => {
     [...row.padEnd(16, '.')].forEach((ch, x) => {
@@ -74,23 +77,36 @@ function drawSprite(ctx, pal, ox = 0, oy = 0) {
   });
 }
 
+// capes, masks, bows and chest emblems are drawn on top of the base sprite
+function drawExtras(ctx, o, ox = 0, oy = 0) {
+  const px = (x, y, col) => { ctx.fillStyle = col; ctx.fillRect(ox + x, oy + y, 1, 1); };
+  if (o.cape) for (let y = 11; y < 18; y++) { px(0, y, o.cape); px(15, y, o.cape); }
+  if (o.mask) {
+    for (let x = 5; x <= 10; x++) px(x, 4, o.mask);
+    for (let x = 3; x <= 12; x++) px(x, 5, o.mask);
+    [3, 6, 7, 8, 9, 12].forEach(x => { px(x, 6, o.mask); px(x, 7, o.mask); });
+  }
+  if (o.bow) {
+    [9, 10, 12, 13].forEach(x => px(x, 1, o.bow));
+    [9, 10, 12, 13].forEach(x => px(x, 2, o.bow));
+    px(11, 1, '#ffffff'); px(11, 2, '#ffffff');
+  }
+  if (o.emblem) { px(7, 13, o.emblem); px(8, 13, o.emblem); px(7, 14, o.emblem); px(8, 14, o.emblem); }
+}
+
+function drawCharacter(ctx, o, ox = 0, oy = 0) {
+  drawSprite(ctx, paletteFor(o), ox, oy);
+  drawExtras(ctx, o, ox, oy);
+}
+
 const heroCanvas = $('#hero');
 const heroCtx = heroCanvas.getContext('2d');
 function renderHero() {
   if (usingCustom) return;
   heroCtx.clearRect(0, 0, 16, 20);
-  drawSprite(heroCtx, paletteFor(OUTFITS[outfitIndex]));
-  $('#outfit-name').textContent = 'outfit: ' + OUTFITS[outfitIndex].name;
+  drawCharacter(heroCtx, OUTFITS[outfitIndex]);
+  $('#outfit-name').textContent = 'hero: ' + OUTFITS[outfitIndex].name;
 }
-function cycleOutfit(d) {
-  if (usingCustom) return;
-  outfitIndex = (outfitIndex + d + OUTFITS.length) % OUTFITS.length;
-  renderHero();
-  buildStatic();
-  blip(600, 0.05);
-}
-$('#prev').addEventListener('click', () => cycleOutfit(-1));
-$('#next').addEventListener('click', () => cycleOutfit(1));
 
 // Optional: drop your own sprite at public/images/chibi.png (32x40 px, transparent) and it replaces this one
 const customSprite = new Image();
@@ -171,7 +187,7 @@ function buildStatic() {
 
   // you, sitting on the left log
   if (usingCustom) c.drawImage(customSprite, 90, 108, 24, 30);
-  else drawSprite(c, paletteFor(OUTFITS[outfitIndex]), 92, 113);
+  else drawCharacter(c, OUTFITS[outfitIndex], 92, 113);
   log(c, 78, 130, 58);
   log(c, 184, 132, 58);
 }
