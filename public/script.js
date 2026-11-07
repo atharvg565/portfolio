@@ -1,344 +1,303 @@
-// ---------- helpers ----------
 const $ = (s, r = document) => r.querySelector(s);
-const $$ = (s, r = document) => [...r.querySelectorAll(s)];
-const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-function el(tag, cls = '', text = '') {
-  const n = document.createElement(tag);
-  if (cls) n.className = cls;
-  if (text) n.textContent = text;
-  return n;
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const store = { get: k => { try { return localStorage.getItem(k); } catch { return null; } },
+                set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
+
+/* ===== EDIT ME: your details ===== */
+const ME = {
+  github: 'https://github.com/atharvg565',
+  linkedin: '', // e.g. https://www.linkedin.com/in/yourname
+  email: '',    // e.g. you@example.com
+  other: []     // [{ label: 'Portfolio', url: '...' }]
+};
+
+/* ===== pixel icons (8x8) ===== */
+const ICON_MAPS = {
+  about: ['..####..','.######.','.######.','..####..','.######.','########','########','########'],
+  projects: ['.######.','#.....##','#.####.#','#.....##','#.####.#','#.....##','#.####.#','.######.'],
+  skills: ['########','########','########','########','.######.','..####..','...##...','........'],
+  connect: ['########','##....##','#.#..#.#','#..##..#','#......#','#......#','########','........']
+};
+const iconCache = {};
+function icon(name) {
+  if (!iconCache[name]) {
+    const c = document.createElement('canvas'); c.width = c.height = 8;
+    const x = c.getContext('2d'); x.fillStyle = '#F06A2B';
+    ICON_MAPS[name].forEach((r, y) => [...r].forEach((ch, i) => ch === '#' && x.fillRect(i, y, 1, 1)));
+    iconCache[name] = c.toDataURL();
+  }
+  return `<img class="ico" src="${iconCache[name]}" alt="">`;
 }
 
-// ---------- sound (tiny 8-bit blips) ----------
-let soundOn = true, actx;
-function blip(freq = 520, dur = 0.07) {
-  if (!soundOn) return;
+/* ===== sound ===== */
+let sfxOn = false, actx;
+function blip(f = 520, d = .06) {
+  if (!sfxOn) return;
   try {
     actx = actx || new (window.AudioContext || window.webkitAudioContext)();
     const o = actx.createOscillator(), g = actx.createGain();
-    o.type = 'square'; o.frequency.value = freq; g.gain.value = 0.04;
-    o.connect(g); g.connect(actx.destination);
-    g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + dur);
-    o.start(); o.stop(actx.currentTime + dur);
-  } catch (e) {}
+    o.type = 'square'; o.frequency.value = f; g.gain.value = .03;
+    g.gain.exponentialRampToValueAtTime(.0001, actx.currentTime + d);
+    o.connect(g); g.connect(actx.destination); o.start(); o.stop(actx.currentTime + d);
+  } catch {}
 }
-const soundBtn = $('#sound');
-soundBtn.addEventListener('click', () => {
-  soundOn = !soundOn;
-  soundBtn.textContent = soundOn ? '♪ on' : '♪ off';
-  blip();
+const bgm = $('#bgm'), musicBtn = $('#music'), vol = $('#vol'), sfxBtn = $('#sfx');
+bgm.volume = (Number(store.get('vol')) || 25) / 100; vol.value = Math.round(bgm.volume * 100);
+function setMusicUI(on, label) {
+  musicBtn.setAttribute('aria-pressed', on); musicBtn.textContent = label || (on ? '♪ MUSIC ON' : '♪ MUSIC OFF');
+}
+async function playMusic() {
+  try { await bgm.play(); setMusicUI(true); store.set('music', 'on'); }
+  catch { setMusicUI(false, '♪ NO AUDIO FILE'); }
+}
+musicBtn.addEventListener('click', () => {
+  if (bgm.paused) playMusic(); else { bgm.pause(); setMusicUI(false); store.set('music', 'off'); }
 });
-
-// ---------- chibi sprite (16x20 pixel map: edit me!) ----------
-// o outline, h hair, H hair shine, s skin, k blush, e eyes, m mouth,
-// r/R outfit light/dark, p pants, b shoes, . transparent
-const SPRITE = [
-  '....oooooooo....',
-  '...ohhhhhhhho...',
-  '..ohhHHhhhhhho..',
-  '..ohhhhhhhhhho..',
-  '.ohhhsssssshhho.',
-  '.ohhsssssssshho.',
-  '.ohseesssseesho.',
-  '.ohseesssseesho.',
-  '.ohskssssssksho.',
-  '..ohsssmmsssho..',
-  '....ossssssso...',
-  '...orrrrrrrro...',
-  '..orrrRrrRrrro..',
-  '.orrrrrrrrrrrro.',
-  '.osrrrRRRRrrrso.',
-  '..oorrrrrrrroo..',
-  '...oppppppppo...',
-  '...opppoopppo...',
-  '...obbboobbbo...',
-  '...oooo..oooo...',
-];
-const OUTFITS = [
-  { name: 'night guard',  main: '#2b2f3a', dark: '#161922', cape: '#14161d', mask: '#14161d' },
-  { name: 'gold armor',   main: '#c4302b', dark: '#e0a526', emblem: '#bff3ff' },
-  { name: 'web runner',   main: '#d62839', dark: '#2748a8', mask: '#d62839' },
-  { name: 'storm hammer', main: '#5b6b7a', dark: '#3a4654', cape: '#c0392b', emblem: '#e0e6ee' },
-  { name: 'bow kitty',    main: '#ff8fb1', dark: '#d9628a', bow: '#ff3d77' },
-];
-let outfitIndex = 0;
-let usingCustom = false;
-
-function paletteFor(o) {
-  return { o: '#2a1a14', h: '#1c1c26', H: '#3d3d58', s: '#f0c19a', k: '#e88a7a',
-           e: '#15110f', m: '#8a3b2e', r: o.main, R: o.dark, p: '#3b4a6b', b: '#2a1a14' };
+bgm.addEventListener('error', () => setMusicUI(false, '♪ NO AUDIO FILE'));
+vol.addEventListener('input', () => { bgm.volume = vol.value / 100; store.set('vol', vol.value); });
+sfxBtn.addEventListener('click', () => {
+  sfxOn = !sfxOn; sfxBtn.setAttribute('aria-pressed', sfxOn); sfxBtn.textContent = sfxOn ? 'SFX ON' : 'SFX OFF'; blip(700);
+});
+// If music was on last visit, resume after the first user interaction (browsers block autoplay)
+if (store.get('music') === 'on') {
+  const resume = () => { if (bgm.paused) playMusic(); };
+  addEventListener('pointerdown', resume, { once: true }); addEventListener('keydown', resume, { once: true });
 }
 
-function drawSprite(ctx, pal, ox = 0, oy = 0) {
-  SPRITE.forEach((row, y) => {
-    [...row.padEnd(16, '.')].forEach((ch, x) => {
-      if (pal[ch]) { ctx.fillStyle = pal[ch]; ctx.fillRect(ox + x, oy + y, 1, 1); }
-    });
-  });
+/* ===== pixel scene: burning horizon, castle silhouettes, embers ===== */
+const W = 320, H = 180, sc = $('#scene'); sc.width = W; sc.height = H;
+const cx = sc.getContext('2d'), bgc = document.createElement('canvas'); bgc.width = W; bgc.height = H;
+const b = bgc.getContext('2d');
+['#0B090A','#160c0e','#2a0f12','#4a1414','#7a1f1c','#a8321c','#d4551f','#f06a2b']
+  .forEach((c, i) => { b.fillStyle = c; b.fillRect(0, i * 14, W, 14); });
+b.fillStyle = 'rgba(255,170,90,.35)'; [26, 18].forEach(r => { b.beginPath(); b.arc(215, 112, r, 0, 7); b.fill(); });
+b.fillStyle = '#0B090A'; b.fillRect(0, 118, W, 62);
+function tower(x, w, h) {
+  b.fillRect(x, 118 - h, w, h);
+  for (let i = 0; i < w; i += 4) b.fillRect(x + i, 118 - h - 3, 2, 3);
+  b.fillStyle = '#f06a2b'; b.fillRect(x + (w >> 1), 118 - h + 6, 1, 3); b.fillStyle = '#0B090A';
+}
+tower(20, 18, 40); tower(60, 12, 62); tower(78, 26, 34); tower(120, 10, 50);
+tower(196, 14, 58); tower(214, 30, 38); tower(262, 12, 70); tower(284, 22, 44);
+b.fillRect(104, 100, 2, 18); b.fillRect(106, 96, 2, 22); // ruined spires
+
+/* ===== original character: the Ashen Knight ===== */
+function drawKnight(c, ox, oy, s = 1, t = 0) {
+  c.save(); c.translate(ox, oy); c.scale(s, s);
+  const r = (x, y, w, h, col) => { c.fillStyle = col; c.fillRect(x, y, w, h); };
+  const sw = Math.round(Math.sin(t / 500) * 1.5);
+  // cape (behind, sways)
+  r(3 + sw, 13, 5, 13, '#7a1620'); r(2 + sw, 24, 3, 4, '#7a1620'); r(6 + sw, 26, 2, 3, '#B8202E');
+  // greatsword
+  r(19, 0, 2, 22, '#9aa0a8'); r(20, 0, 1, 22, '#d8dde3'); r(19, 0, 1, 1, '#d8dde3');
+  r(16, 22, 8, 2, '#4a3a2a'); r(19, 24, 2, 4, '#5a3a2a'); r(19, 28, 2, 1, '#9aa0a8');
+  // legs + boots
+  r(9, 22, 3, 7, '#2c2c36'); r(13, 22, 3, 7, '#2c2c36');
+  r(8, 28, 4, 3, '#1a1416'); r(13, 28, 4, 3, '#1a1416');
+  // torso, belt, gem
+  r(8, 12, 9, 10, '#3a3a46'); r(9, 13, 3, 4, '#6b6b7a'); r(8, 20, 9, 2, '#5a3a2a');
+  r(12, 16, 2, 2, '#B8202E'); r(8, 12, 1, 8, '#a8321c');          // ember rim light
+  // pauldrons
+  r(6, 11, 4, 4, '#4a4a58'); r(15, 11, 4, 4, '#4a4a58'); r(6, 11, 4, 1, '#6b6b7a'); r(15, 11, 4, 1, '#6b6b7a');
+  // sword arm + hand
+  r(17, 15, 3, 3, '#3a3a46'); r(19, 17, 2, 3, '#5a3a2a');
+  // horned helm
+  r(9, 3, 7, 8, '#3a3a46'); r(10, 4, 2, 2, '#6b6b7a');
+  r(8, 1, 1, 3, '#a69b9a'); r(7, 0, 1, 2, '#a69b9a'); r(16, 1, 1, 3, '#a69b9a'); r(17, 0, 1, 2, '#a69b9a');
+  r(10, 7, 5, 1, '#0B090A'); r(11, 7, 1, 1, '#F06A2B'); r(14, 7, 1, 1, '#F06A2B');
+  r(11, 11, 3, 1, '#2c2c36');
+  c.restore();
 }
 
-// capes, masks, bows and chest emblems are drawn on top of the base sprite
-function drawExtras(ctx, o, ox = 0, oy = 0) {
-  const px = (x, y, col) => { ctx.fillStyle = col; ctx.fillRect(ox + x, oy + y, 1, 1); };
-  if (o.cape) for (let y = 11; y < 18; y++) { px(0, y, o.cape); px(15, y, o.cape); }
-  if (o.mask) {
-    for (let x = 5; x <= 10; x++) px(x, 4, o.mask);
-    for (let x = 3; x <= 12; x++) px(x, 5, o.mask);
-    [3, 6, 7, 8, 9, 12].forEach(x => { px(x, 6, o.mask); px(x, 7, o.mask); });
-  }
-  if (o.bow) {
-    [9, 10, 12, 13].forEach(x => px(x, 1, o.bow));
-    [9, 10, 12, 13].forEach(x => px(x, 2, o.bow));
-    px(11, 1, '#ffffff'); px(11, 2, '#ffffff');
-  }
-  if (o.emblem) { px(7, 13, o.emblem); px(8, 13, o.emblem); px(7, 14, o.emblem); px(8, 14, o.emblem); }
+function drawTorch(c, x, y, t) {
+  c.fillStyle = 'rgba(240,106,43,.08)'; c.beginPath(); c.arc(x + 1, y - 4, 22, 0, 7); c.fill();
+  c.fillStyle = '#3a2a1e'; c.fillRect(x, y, 2, 14);
+  c.fillStyle = '#1a1416'; c.fillRect(x - 1, y, 4, 2);
+  const f = Math.floor(t / 110) % 3;
+  [['#B8202E', 7 + f, 5], ['#F06A2B', 5 + f, 3], ['#ffd36b', 3, 1]]
+    .forEach(([col, h, w]) => { c.fillStyle = col; c.fillRect(x + 1 - (w >> 1), y - h, w, h); });
 }
 
-function drawCharacter(ctx, o, ox = 0, oy = 0) {
-  drawSprite(ctx, paletteFor(o), ox, oy);
-  drawExtras(ctx, o, ox, oy);
+function drawScenery(t) {
+  drawTorch(cx, 84, 108, t); drawTorch(cx, 236, 108, t);
+  // sword planted in the ground
+  cx.fillStyle = '#9aa0a8'; cx.fillRect(278, 100, 2, 28);
+  cx.fillStyle = '#d8dde3'; cx.fillRect(279, 100, 1, 28);
+  cx.fillStyle = '#4a3a2a'; cx.fillRect(273, 104, 12, 2);
+  cx.fillStyle = '#1a1416'; cx.fillRect(272, 127, 14, 2);
+  drawKnight(cx, 22, 80, 1.5, t);
 }
 
-const heroCanvas = $('#hero');
-const heroCtx = heroCanvas.getContext('2d');
-function renderHero() {
-  if (usingCustom) return;
-  heroCtx.clearRect(0, 0, 16, 20);
-  drawCharacter(heroCtx, OUTFITS[outfitIndex]);
-  $('#outfit-name').textContent = 'hero: ' + OUTFITS[outfitIndex].name;
+function drawPortrait() {
+  const cv = $('#portrait'); if (!cv) return;
+  const c = cv.getContext('2d'); c.clearRect(0, 0, 26, 34);
+  const g = c.createRadialGradient(13, 20, 2, 13, 20, 17);
+  g.addColorStop(0, 'rgba(240,106,43,.35)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+  c.fillStyle = g; c.fillRect(0, 0, 26, 34);
+  drawKnight(c, 1, 1, 1, 0);
 }
 
-function cycleOutfit(d) {
-  if (usingCustom) return;
-  outfitIndex = (outfitIndex + d + OUTFITS.length) % OUTFITS.length;
-  renderHero();
-  buildStatic();
-  blip(600, 0.05);
-}
-$('#prev').addEventListener('click', () => cycleOutfit(-1));
-$('#next').addEventListener('click', () => cycleOutfit(1));
-
-// Optional: drop your own sprite at public/images/chibi.png (32x40 px, transparent) and it replaces this one
-const customSprite = new Image();
-customSprite.onload = () => {
-  usingCustom = true;
-  customSprite.id = 'hero';
-  customSprite.alt = 'Chibi Atharv';
-  heroCanvas.replaceWith(customSprite);
-  $('#outfit-name').textContent = 'player one';
-  buildStatic();
-};
-customSprite.src = 'images/chibi.png';
-
-// ---------- pixel forest scene (320x180, scaled up crisp) ----------
-const W = 320, H = 180;
-const scene = $('#scene');
-scene.width = W; scene.height = H;
-const sctx = scene.getContext('2d');
-const layer = document.createElement('canvas');
-layer.width = W; layer.height = H;
-const lctx = layer.getContext('2d');
-
-function mulberry32(a) {
-  return function () {
-    a |= 0; a = a + 0x6D2B79F5 | 0;
-    let t = Math.imul(a ^ a >>> 15, 1 | a);
-    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
-    return ((t ^ t >>> 14) >>> 0) / 4294967296;
-  };
-}
-function pine(c, x, baseY, h, w, color) {
-  c.fillStyle = color;
-  for (let i = 0; i < h; i++) {
-    const half = Math.max(1, Math.round((i / h) * (w / 2) + (i % 7 < 2 ? 1.5 : 0)));
-    c.fillRect(x - half, baseY - h + i, half * 2 + 1, 1);
-  }
-  c.fillRect(x - 1, baseY, 3, 4);
-}
-function log(c, x, y, w) {
-  c.fillStyle = '#6b3f26'; c.fillRect(x, y, w, 9);
-  c.fillStyle = '#8a5634'; c.fillRect(x, y, w, 2);
-  c.fillStyle = '#3e2315'; c.fillRect(x, y + 8, w, 1);
-  c.fillStyle = '#caa070'; c.fillRect(x + w - 3, y + 1, 3, 7);
-  c.fillStyle = '#e8c58f'; c.fillRect(x + w - 2, y + 3, 1, 3);
-}
-
-function buildStatic() {
-  const c = lctx, r = mulberry32(11);
-  c.imageSmoothingEnabled = false;
-
-  // sky bands (dusk)
-  ['#2c4352', '#34505f', '#41596a', '#5b6372', '#7a6670', '#9b6c69', '#bc7b66', '#d68f68']
-    .forEach((col, i) => { c.fillStyle = col; c.fillRect(0, i * 15, W, 15); });
-  c.fillStyle = 'rgba(255,190,120,0.18)';
-  for (let k = 0; k < 4; k++) { c.beginPath(); c.arc(190, 112, 40 - k * 9, 0, Math.PI * 2); c.fill(); }
-
-  // far + mid trees
-  for (let x = -5; x < W + 10; x += 11 + Math.floor(r() * 8)) pine(c, x, 122, 46 + Math.floor(r() * 26), 22, '#4d5f66');
-  for (let x = 0; x < W + 10; x += 16 + Math.floor(r() * 12)) pine(c, x, 128, 60 + Math.floor(r() * 30), 30, '#2f4448');
-
-  // ground
-  c.fillStyle = '#2b3a2b'; c.fillRect(0, 124, W, H - 124);
-  for (let i = 0; i < 500; i++) {
-    c.fillStyle = r() > 0.5 ? '#37502f' : '#202c20';
-    c.fillRect(Math.floor(r() * W), 124 + Math.floor(r() * (H - 124)), 2, 1);
-  }
-  c.fillStyle = '#5a4c33';
-  for (let y = 140; y < 166; y++) for (let x = 70; x < 250; x++) {
-    const dx = (x - 160) / 90, dy = (y - 153) / 13;
-    if (dx * dx + dy * dy < 1 && r() > 0.12) c.fillRect(x, y, 1, 1);
-  }
-
-  // dark foreground trees framing the scene
-  pine(c, 6, 190, 200, 80, '#0e1715');
-  pine(c, 314, 190, 200, 84, '#0e1715');
-  pine(c, 52, 190, 150, 50, '#142120');
-  pine(c, 272, 190, 150, 50, '#142120');
-
-  // you, sitting on the left log
-  if (usingCustom) c.drawImage(customSprite, 90, 108, 24, 30);
-  else drawCharacter(c, OUTFITS[outfitIndex], 92, 113);
-  log(c, 78, 130, 58);
-  log(c, 184, 132, 58);
-}
-
-function drawFire(t) {
-  const c = sctx, fx = 160, fy = 152, f = Math.floor(t / 120);
-  c.fillStyle = 'rgba(255,150,60,0.07)';
-  for (let k = 0; k < 4; k++) { c.beginPath(); c.arc(fx, fy - 6, 70 - k * 14, 0, Math.PI * 2); c.fill(); }
-  [['#e5432d', 12, 9], ['#ff8a3d', 9, 7], ['#ffd36b', 5, 4]].forEach(([col, h, w], i) => {
-    c.fillStyle = col;
-    const hh = h + ((f * (i + 3) * 7) % 4);
-    for (let y = 0; y < hh; y++) {
-      const half = Math.max(1, Math.round((1 - y / hh) * w / 2));
-      c.fillRect(fx - half, fy - y - 3, half * 2 + 1, 1);
-    }
-  });
-  c.fillStyle = '#6a6a62';
-  [-9, -5, 0, 5, 9].forEach(dx => c.fillRect(fx + dx - 1, fy + (Math.abs(dx) > 6 ? -2 : 0), 3, 2));
-}
-
-const flies = Array.from({ length: 16 }, () => ({
-  x: Math.random() * W, y: 60 + Math.random() * 90, p: Math.random() * 6.28, s: 0.3 + Math.random() * 0.5,
-}));
-function drawFlies(t) {
-  flies.forEach(f => {
-    const x = f.x + Math.sin(t / 900 * f.s + f.p) * 14;
-    const y = f.y + Math.cos(t / 1100 * f.s + f.p) * 8;
-    const a = 0.35 + 0.65 * Math.abs(Math.sin(t / 600 * f.s + f.p));
-    sctx.fillStyle = `rgba(255,226,130,${a.toFixed(2)})`;
-    sctx.fillRect(Math.round(x), Math.round(y), 1, 1);
-  });
-}
-
+const N = matchMedia('(max-width:760px)').matches ? 22 : 48;
+const embers = Array.from({ length: N }, () => ({ x: Math.random() * W, y: Math.random() * H, v: .15 + Math.random() * .4, p: Math.random() * 6 }));
 let last = 0;
 function frame(t) {
-  if (t - last > 110) {
-    last = t;
-    sctx.drawImage(layer, 0, 0);
-    drawFire(t);
-    drawFlies(t);
+  if (t - last > 70) {
+    last = t; cx.drawImage(bgc, 0, 0);
+    drawScenery(t);
+    embers.forEach(e => {
+      e.y -= e.v; e.x += Math.sin(t / 800 + e.p) * .2;
+      if (e.y < 0) { e.y = H; e.x = Math.random() * W; }
+      cx.fillStyle = `rgba(240,106,43,${(.35 + .5 * Math.abs(Math.sin(t / 500 + e.p))).toFixed(2)})`;
+      cx.fillRect(e.x | 0, e.y | 0, 1, 1);
+    });
   }
-  if (!reduceMotion) requestAnimationFrame(frame);
+  requestAnimationFrame(frame);
+}
+cx.drawImage(bgc, 0, 0); drawScenery(0); if (!reduce) requestAnimationFrame(frame);
+
+/* ===== pages ===== */
+const view = $('#view');
+const ph = t => `<span class="ph">[Add: ${esc(t)}]</span>`;
+
+function pageMenu() {
+  return `<h1 class="title glitch">ATHARV GUPTA</h1>
+  <p class="sub">DEVELOPER // DIGITAL CREATOR</p>
+  <ul class="menu" id="menu">
+    ${[['about','ABOUT ME'],['projects','PROJECTS'],['skills','SKILLS'],['connect','CONNECT WITH ME']]
+      .map(([k, l]) => `<li><a href="#/${k}">${icon(k)}${l}</a></li>`).join('')}
+  </ul>`;
 }
 
-// ---------- stats ----------
-// Be honest here: 1 = just started, 5 = very comfortable
-const LANGS = [
-  ['Python', 3], ['SQL', 3], ['JavaScript', 3], ['HTML / CSS', 3],
-  ['Node.js', 2], ['React', 2], ['MongoDB', 2],
-];
-$('#stat-list').replaceChildren(...LANGS.map(([name, lvl]) => {
-  const li = el('li');
-  li.append(el('span', '', name));
-  const bar = el('span', 'bar');
-  bar.setAttribute('aria-label', `${lvl} out of 5`);
-  for (let i = 0; i < 5; i++) bar.append(el('i', i < lvl ? 'on' : ''));
-  li.append(bar);
-  return li;
-}));
-
-// ---------- projects (from your Express API) ----------
-fetch('/api/projects')
-  .then(res => res.json())
-  .then(list => {
-    $('#project-grid').replaceChildren(...list.map(p => {
-      const card = el('article', 'panel project-card');
-      card.append(el('h3', 'p-title', p.title), el('p', '', p.description));
-      const tags = el('div', 'tags');
-      (p.tags || []).forEach(t => tags.append(el('span', 'tag', t)));
-      card.append(tags);
-      const a = el('a', 'pixel-link', 'view on github ▶');
-      a.href = p.link; a.target = '_blank'; a.rel = 'noopener';
-      card.append(a);
-      return card;
-    }));
-  })
-  .catch(() => { $('#project-grid').textContent = 'Could not load the quest log. Is the server running?'; });
-
-// ---------- navigation ----------
-let current = 'menu';
-const quitModal = $('#quit-modal');
-const firstMenuBtn = () => $('#menu-list button');
-
-function show(name) {
-  if (name === 'quit') return openQuit();
-  $$('.screen').forEach(s => s.classList.toggle('active', s.id === name));
-  current = name;
-  if (name === 'menu') firstMenuBtn().focus();
+function pageAbout() {
+  return `<h2 class="page-h">PLAYER PROFILE</h2>
+  <div class="two">
+    <aside class="panel profile">
+      <div class="frame"><canvas id="portrait" class="portrait" width="26" height="34" aria-label="Pixel-art Ashen Knight"></canvas></div>
+      <h3>ATHARV</h3><p class="status">CLASS: FULL-STACK APPRENTICE</p>
+      <dl>
+        <dt>STUDYING</dt><dd>${ph('degree / school / year')}</dd>
+        <dt>BASE</dt><dd>${ph('city, optional')}</dd>
+        <dt>LOOKING FOR</dt><dd>${ph('internships / collaborations')}</dd>
+      </dl>
+    </aside>
+    <article class="panel">
+      <div class="label">INTRODUCTION</div>
+      <p>I'm a student developer who learns by building. I like turning messy problems into software that can explain its own answers.</p>
+      <div class="label">BACKGROUND &amp; EDUCATION</div><p>${ph('your educational journey')}</p>
+      <div class="label">HOW I GOT INTO PROGRAMMING</div><p>${ph('your story')}</p>
+      <div class="label">INTERESTS</div>
+      <p>Software development, cybersecurity (CyberShield), and explainable matching and scoring (Setu). ${ph('AI / creative tech interests, if accurate')}</p>
+      <div class="label">CURRENTLY LEARNING</div><p>${ph('e.g. what you are studying now')}</p>
+      <div class="label">FUTURE GOALS</div><p>${ph('the kinds of projects you want to build')}</p>
+    </article>
+  </div>`;
 }
-document.addEventListener('click', e => {
-  const b = e.target.closest('[data-go]');
-  if (b) { blip(660); show(b.dataset.go); }
+
+function projectCard(p) {
+  return `<article class="panel card ${p.featured ? 'feat' : ''}">
+    <div class="shot">${p.shot ? `<img src="${esc(p.shot)}" alt="${esc(p.title)} preview">` : '[ PREVIEW PLACEHOLDER ]'}</div>
+    <h3>${esc(p.title)}${p.featured ? ' ★' : ''}</h3><div class="status">STATUS: ${esc(p.status)}</div>
+    <p>${esc(p.summary)}</p>
+    <div class="tags">${p.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>
+    <div class="row"><a class="btn" href="#/projects/${esc(p.slug)}">INSPECT</a>
+      ${p.github ? `<a class="btn" href="${esc(p.github)}" target="_blank" rel="noopener">GITHUB</a>` : ''}
+      ${p.demo ? `<a class="btn" href="${esc(p.demo)}" target="_blank" rel="noopener">LIVE</a>` : ''}</div></article>`;
+}
+const pageProjects = () => `<h2 class="page-h">QUEST LOG</h2><div class="grid">${PROJECTS.map(projectCard).join('')}</div>`;
+
+function pageProject(slug) {
+  const p = PROJECTS.find(x => x.slug === slug);
+  if (!p) return `<h2 class="page-h">QUEST NOT FOUND</h2><a class="btn" href="#/projects">◀ BACK</a>`;
+  const sec = (l, v) => `<div class="label">${l}</div><p>${/^\[Add/.test(v) ? `<span class="ph">${esc(v)}</span>` : esc(v)}</p>`;
+  return `<h2 class="page-h">${esc(p.title)}</h2>
+  <article class="panel">
+    <div class="shot">${p.shot ? `<img src="${esc(p.shot)}" alt="${esc(p.title)} screenshot">` : '[ SCREENSHOT PLACEHOLDER ]'}</div>
+    <div class="status" style="margin-top:.6rem">STATUS: ${esc(p.status)}</div>
+    ${sec('OVERVIEW', p.overview)}${sec('PROBLEM', p.problem)}${sec('MY CONTRIBUTION', p.contribution)}
+    ${sec('TECHNICAL APPROACH', p.approach)}
+    <div class="label">TECH STACK</div><div class="tags">${p.stack.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>
+    ${sec('KEY CHALLENGES', p.challenges)}${sec('RESULTS &amp; LESSONS', p.results)}
+    <div class="row" style="margin-top:1rem"><a class="btn" href="#/projects">◀ ALL QUESTS</a>
+      ${p.github ? `<a class="btn" href="${esc(p.github)}" target="_blank" rel="noopener">REPOSITORY</a>` : ''}
+      ${p.demo ? `<a class="btn" href="${esc(p.demo)}" target="_blank" rel="noopener">LIVE DEMO</a>` : ''}</div>
+  </article>`;
+}
+
+/* Only skills you've mentioned are listed. d: '' means "add how you used it". */
+const SKILLS = {
+  'Programming languages': [['Python','Used in CyberShield.'],['JavaScript','Used in this portfolio and Setu.'],['SQL',''],['HTML / CSS','Used to build this portfolio.']],
+  'Frontend': [['React','Used in Setu.'],['Tailwind','Used in Setu.']],
+  'Backend': [['Node.js','Used in Setu and this portfolio.'],['Express','Serves this portfolio; used in Setu.']],
+  'Databases': [['MongoDB','Used in Setu.'],['SQL / SQLite','']],
+  'AI & machine learning': [['ML classification','CyberShield uses a model trained on about 235,000 URLs.']],
+  'Developer tools': [['Git & GitHub',''],['VS Code',''],['Vercel','Hosts this portfolio.']]
+};
+function pageSkills() {
+  return `<h2 class="page-h">INVENTORY</h2><div class="inv">
+  ${Object.entries(SKILLS).map(([cat, items]) => `<h3>${esc(cat.toUpperCase())}</h3>
+    <div class="slots">${items.map(([n, d]) => `<button class="slot" aria-pressed="false" data-n="${esc(n)}" data-d="${esc(d)}">${icon('skills')}${esc(n)}</button>`).join('')}</div>`).join('')}
+  </div><div class="panel detail" id="detail" aria-live="polite"><span class="ph">Select an item to inspect it.</span></div>`;
+}
+
+function pageConnect() {
+  const link = (l, u) => u ? `<a class="btn" href="${esc(u)}" target="_blank" rel="noopener">${l}</a>`
+    : `<span class="btn ph">${l}: [Add link in ME in script.js]</span>`;
+  return `<h2 class="page-h">START TRANSMISSION</h2>
+  <section class="panel term">
+    <div class="line">channel open: atharv_gupta</div>
+    <div class="line">status: available for collaboration ${ph('edit if not true')}</div>
+    <div class="line caret">let's connect</div>
+    <div class="links">
+      ${link('GITHUB', ME.github)}${link('LINKEDIN', ME.linkedin)}
+      ${ME.other.map(o => link(esc(o.label.toUpperCase()), o.url)).join('')}
+      ${ME.email ? `<div class="row"><a class="btn" href="mailto:${esc(ME.email)}">EMAIL: ${esc(ME.email)}</a>
+        <button class="btn" id="copy">COPY EMAIL</button><span id="copied" role="status"></span></div>`
+        : '<span class="btn ph">EMAIL: [Add email in ME in script.js]</span>'}
+    </div>
+  </section>`;
+}
+
+/* ===== router ===== */
+const PAGES = { about: [pageAbout, 'About'], projects: [pageProjects, 'Projects'], skills: [pageSkills, 'Skills'], connect: [pageConnect, 'Connect'] };
+function route() {
+  const [page, id] = location.hash.replace(/^#\/?/, '').split('/');
+  let html = pageMenu(), title = 'Atharv Gupta | Developer';
+  if (page === 'projects' && id) { html = pageProject(id); title = 'Quest | Atharv Gupta'; }
+  else if (PAGES[page]) { html = PAGES[page][0](); title = `${PAGES[page][1]} | Atharv Gupta`; }
+  view.innerHTML = html; document.title = title;
+  view.classList.remove('enter'); void view.offsetWidth; if (!reduce) view.classList.add('enter');
+  const f = $('#flash'); f.classList.remove('go'); void f.offsetWidth; if (!reduce) f.classList.add('go');
+  $('#home-link').hidden = !page;
+  $('#foot').textContent = page ? 'ESC BACK · TAB / CLICK TO NAVIGATE' : '↑ ↓ MOVE · ENTER SELECT · ESC BACK';
+  scrollTo(0, 0); blip(660);
+  (page ? view : $('#menu a')).focus({ preventScroll: true });
+  if (!page) $('#menu').addEventListener('mouseover', e => e.target.closest('a')?.focus());
+  drawPortrait();
+}
+addEventListener('hashchange', route); route();
+
+/* ===== interactions ===== */
+view.addEventListener('click', e => {
+  const slot = e.target.closest('.slot');
+  if (slot) {
+    document.querySelectorAll('.slot').forEach(s => s.setAttribute('aria-pressed', s === slot));
+    $('#detail').innerHTML = `<h3>${esc(slot.dataset.n)}</h3><p>${slot.dataset.d ? esc(slot.dataset.d) : '<span class="ph">[Add: how you have used this in a project]</span>'}</p>`;
+    blip(520);
+  }
+  if (e.target.id === 'copy') {
+    navigator.clipboard.writeText(ME.email).then(
+      () => { $('#copied').textContent = ' COPIED ✓'; },
+      () => { $('#copied').textContent = ' COPY FAILED, use the email link'; });
+  }
 });
-$$('.menu-list button').forEach(b => b.addEventListener('mouseenter', () => b.focus()));
-
-// ---------- quit pop-up ----------
-function openQuit() {
-  quitModal.hidden = false;
-  $('input[name="reason"]:checked').focus();
-  blip(330);
-}
-function closeQuit() {
-  quitModal.hidden = true;
-  if (current === 'menu') firstMenuBtn().focus();
-}
-$('#stay').addEventListener('click', () => { blip(440); closeQuit(); });
-$('#leave').addEventListener('click', () => {
-  const choice = $('input[name="reason"]:checked').value;
-  const extra = $('#reason-other').value.trim();
-  const reason = extra ? `${choice}: ${extra}` : choice;
-  // Optional: only does something if you add the /api/quit-reason route to server.js
-  fetch('/api/quit-reason', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason }),
-  }).catch(() => {});
-  quitModal.hidden = true;
-  $('#bye-msg').textContent = `Safe travels, adventurer. Reason noted: ${choice}`;
-  $('#reason-other').value = '';
-  show('bye');
-  blip(260, 0.2);
-});
-
-// ---------- keyboard ----------
-document.addEventListener('keydown', e => {
-  if (!quitModal.hidden) { if (e.key === 'Escape') closeQuit(); return; }
-  if (e.key === 'Escape') { current === 'menu' ? openQuit() : show('menu'); return; }
-  if (current === 'menu' && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+addEventListener('keydown', e => {
+  if (e.target.matches('input,textarea')) return;
+  const page = location.hash.replace(/^#\/?/, '').split('/');
+  if (e.key === 'Escape' && page[0]) { location.hash = page[1] ? '#/projects' : '#/'; return; }
+  if (!page[0] && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
     e.preventDefault();
-    const btns = $$('#menu-list button');
-    const i = btns.indexOf(document.activeElement);
-    const n = i < 0 ? 0 : (i + (e.key === 'ArrowDown' ? 1 : -1) + btns.length) % btns.length;
-    btns[n].focus();
-    blip(520, 0.04);
-  }
-  if (current === 'about') {
-    if (e.key === 'ArrowRight') cycleOutfit(1);
-    if (e.key === 'ArrowLeft') cycleOutfit(-1);
+    const items = [...document.querySelectorAll('#menu a')], i = items.indexOf(document.activeElement);
+    items[(i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length].focus(); blip(520, .04);
   }
 });
-
-// ---------- go ----------
-renderHero();
-buildStatic();
-if (reduceMotion) frame(1000); else requestAnimationFrame(frame);
-firstMenuBtn().focus();
