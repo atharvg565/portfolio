@@ -226,7 +226,7 @@ const ph = t => `<span class="ph">[Add: ${esc(t)}]</span>`;
 function pageMenu() {
   return `<div class="note" aria-hidden="true"><i class="pin"></i>psst: use ↑ ↓ then enter</div>
   <h1 class="sticker">ATHARV<br>GUPTA</h1>
-  <p class="sub"><span>DEVELOPER // DIGITAL CREATOR</span></p>
+  <p class="sub"><span>DEVELOPER</span></p>
   <ul class="menu" id="menu">
     ${[['about','ABOUT ME'],['projects','PROJECTS'],['skills','SKILLS'],['connect','CONNECT WITH ME']]
       .map(([k, l]) => `<li><a href="#/${k}">${icon(k)}${l}</a></li>`).join('')}
@@ -244,22 +244,29 @@ function pageAbout() {
   <div class="two">
     <aside class="panel profile">
       <div class="avatar" aria-hidden="true">AG</div>
-      <h3>ATHARV</h3><p class="status">CLASS: FULL-STACK APPRENTICE</p>
+      <h3>ATHARV GUPTA</h3><p class="status">CLASS: B.TECH AI &amp; DATA SCIENCE</p>
       <dl>
-        <dt>STUDYING</dt><dd>${ph('degree / school / year')}</dd>
-        <dt>BASE</dt><dd>${ph('city, optional')}</dd>
-        <dt>LOOKING FOR</dt><dd>${ph('internships / collaborations')}</dd>
+        <dt>STUDYING</dt><dd>B.Tech, Artificial Intelligence &amp; Data Science, 1st year</dd>
+        <dt>BASE</dt><dd>Delhi</dd>
+        <dt>LOOKING FOR</dt><dd>Collaborations and internships</dd>
       </dl>
     </aside>
     <article class="panel">
       <div class="label">INTRODUCTION</div>
-      <p>I'm a student developer who learns by building. I like turning messy problems into software that can explain its own answers.</p>
-      <div class="label">BACKGROUND &amp; EDUCATION</div><p>${ph('your educational journey')}</p>
-      <div class="label">HOW I GOT INTO PROGRAMMING</div><p>${ph('your story')}</p>
+      <p>Hi, I'm Atharv Gupta, a student with a keen interest in technology, entrepreneurship, and creative projects. I enjoy exploring new ideas, building things, and taking on challenges that help me learn, grow, and improve my skills.</p>
+      <div class="label">BACKGROUND &amp; EDUCATION</div>
+      <p>Currently a first-year B.Tech student in Artificial Intelligence and Data Science.</p>
+      <div class="label">HOW I GOT INTO PROGRAMMING</div>
+      <p>I started for fun, and it turned into building real projects.</p>
       <div class="label">INTERESTS</div>
-      <p>Software development, cybersecurity (CyberShield), and explainable matching and scoring (Setu). ${ph('AI / creative tech interests, if accurate')}</p>
-      <div class="label">CURRENTLY LEARNING</div><p>${ph('e.g. what you are studying now')}</p>
-      <div class="label">FUTURE GOALS</div><p>${ph('the kinds of projects you want to build')}</p>
+      <p>Technology, entrepreneurship and creative projects.</p>
+      <div class="label">CURRENTLY LEARNING</div>
+      <p>Java, HTML and CSS.</p>
+      <div class="label">FUTURE GOALS</div>
+      <p>Building whatever I find interesting, and open to collaborations and internships.</p>
+      <div class="label">ACHIEVEMENTS</div>
+      <p><b>Smart India Hackathon 2026:</b> backend developer in a team of 6. We cleared 2 rounds.</p>
+      <p><b>CyberCup 6.0:</b> participated. We didn't win, but it was good experience.</p>
     </article>
   </div>`;
 }
@@ -296,12 +303,12 @@ function pageProject(slug) {
 
 /* Only skills you've mentioned are listed. '' means "add how you used it". */
 const SKILLS = {
-  'Programming languages': [['Python','Used in CyberShield.'],['JavaScript','Used in this portfolio and Setu.'],['SQL',''],['HTML / CSS','Used to build this portfolio.']],
-  'Frontend': [['React','Used in Setu.'],['Tailwind','Used in Setu.']],
-  'Backend': [['Node.js','Used in Setu and this portfolio.'],['Express','Serves this portfolio; used in Setu.']],
-  'Databases': [['MongoDB','Used in Setu.'],['SQL / SQLite','']],
-  'AI & machine learning': [['ML classification','CyberShield uses a model trained on about 235,000 URLs.']],
-  'Developer tools': [['Git & GitHub',''],['VS Code',''],['Vercel','Hosts this portfolio.']]
+  'Programming languages': [['Python','Comfortable. Used for all of CyberShield.'],['SQL','Comfortable.'],['Java','Currently learning.'],['HTML','Beginner, learning. Used in this portfolio.'],['CSS','Beginner, learning. Used in this portfolio.'],['JavaScript','Used in this portfolio and Setu.']],
+  'Frontend': [['React','Part of Setu\'s stack (built by the team).'],['Tailwind','Part of Setu\'s stack (built by the team).'],['Streamlit','CyberShield\'s dashboard: check, history and metrics tabs.']],
+  'Backend': [['Node.js','First used in Setu, where I built the backend.'],['Express','Setu\'s backend and this portfolio\'s server.'],['FastAPI','CyberShield\'s /analyze API, with Uvicorn and Pydantic validation.']],
+  'Databases': [['MongoDB','Used in Setu.'],['SQL','Comfortable.']],
+  'AI & machine learning': [['XGBoost','CyberShield\'s URL model, scoring each URL from 16 structural features.'],['scikit-learn','Evaluation metrics and the optional text model in CyberShield.'],['pandas','Feature tables in CyberShield.']],
+  'Developer tools': [['Git & GitHub','Used for all my projects.'],['VS Code',''],['Vercel','Hosts this portfolio and CyberShield\'s live demo.']]
 };
 function pageSkills() {
   return `<h2 class="sticker page-h">INVENTORY</h2><div class="inv">
@@ -316,7 +323,7 @@ function pageConnect() {
   return `<h2 class="sticker page-h">START TRANSMISSION</h2>
   <section class="panel term">
     <div class="line">channel open: atharv_gupta</div>
-    <div class="line">status: available for collaboration ${ph('edit if not true')}</div>
+    <div class="line">status: open to collaborations and internships</div>
     <div class="line caret">let's connect</div>
     <div class="links">
       ${link('GITHUB', ME.github)}${link('LINKEDIN', ME.linkedin)}
